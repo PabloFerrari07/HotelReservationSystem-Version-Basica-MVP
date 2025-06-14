@@ -1,8 +1,8 @@
-🏨 HotelReservationSystem - Sistema básico de reservas de hotel
+🏨 HotelReservationSystem - Sistema básico de reservas de hotel.
 Este es un proyecto full backend desarrollado con C# y .NET, que permite a usuarios registrarse, iniciar sesión, ver habitaciones disponibles y crear reservas. Los administradores pueden gestionar habitaciones y ver todas las reservas.
 
 🚀 Tecnologías utilizadas
-ASP.NET Core 7
+ASP.NET Core 8
 
 Entity Framework Core
 
