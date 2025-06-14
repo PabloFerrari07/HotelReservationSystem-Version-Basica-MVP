@@ -28,8 +28,6 @@ Control de acceso por roles (cliente/admin)
 Validaciones básicas al crear reservas (por ejemplo, solo fechas futuras)
 
 📁 Estructura del proyecto
-Copiar
-Editar
 HotelAplication/
 │
 ├── Controllers/
@@ -46,6 +44,7 @@ HotelAplication/
 ├── Dtos/
 ├── Mappings/
 └── Program.cs
+
 🧪 Swagger para testing de endpoints
 Puedes probar el sistema desde Swagger en:
 
