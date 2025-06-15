@@ -1,4 +1,5 @@
-﻿using HotelAplication.Dtos;
+﻿using FluentValidation;
+using HotelAplication.Dtos;
 using HotelAplication.Models;
 using HotelAplication.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,19 +13,29 @@ namespace HotelAplication.Controllers
     public class ReservaController : ControllerBase
     {
         private readonly IReservaService _reservaService;
+        private readonly IValidator<CrearReservaDto> _reservaValidator;
         private readonly JwtService _jwtService;
         private readonly IHabitacionServices _habitacionServices;
-        public ReservaController(IReservaService reservaService, JwtService jwtService, IHabitacionServices habitacionServices)
+        public ReservaController(IReservaService reservaService,
+                               JwtService jwtService,
+                               IHabitacionServices habitacionServices,
+                               IValidator<CrearReservaDto> reservaValidator)
         {
             _reservaService = reservaService;
             _jwtService = jwtService;
             _habitacionServices = habitacionServices;
+            _reservaValidator = reservaValidator;
         }
 
         [Authorize(Roles = "cliente")]
         [HttpPost]
         public async Task<ActionResult<ReservaDto>> CrearReserva(CrearReservaDto dto)
         {
+            var validationResult = await _reservaValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors);
+            }
             var idUsuario = int.Parse(User.Claims.First(c => c.Type == "id").Value);
             var reserva = await _reservaService.CrearReserva(idUsuario, dto);
             return Ok(reserva);

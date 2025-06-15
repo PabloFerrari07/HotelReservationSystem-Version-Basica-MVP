@@ -20,32 +20,34 @@ namespace HotelAplication.Services
         public async Task<UsuarioDto> RegistrarUsuario(RegistroDto dto)
         {
 
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            if (string.IsNullOrWhiteSpace(dto.Rol))
+            {
+                dto.Rol = "cliente";
+            }
 
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
             var usuario = new Usuario
             {
                 Name = dto.Nombre,
                 Email = dto.Email,
                 PasswordHash = passwordHash,
-                Rol = dto.Rol
-
+                Rol = dto.Rol 
             };
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
-            var usuarioDto =  new UsuarioDto
+            var usuarioDto = new UsuarioDto
             {
                 Name = usuario.Name,
                 Email = usuario.Email,
                 Rol = usuario.Rol
             };
 
-
-
             return usuarioDto;
         }
+
 
         public async Task<UsuarioDto?> Login(LoginDto dto)
         {

@@ -1,6 +1,8 @@
-﻿using HotelAplication.Dtos;
+﻿using FluentValidation;
+using HotelAplication.Dtos;
 using HotelAplication.Models;
 using HotelAplication.Services;
+using HotelAplication.Validators;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +15,11 @@ namespace HotelAplication.Controllers
     public class HabitacionController : ControllerBase
     {
         private readonly IHabitacionServices _habitacionServices;
-        public HabitacionController(IHabitacionServices habitacionServices)
+        private readonly IValidator<HabitacionDto> _HabitacionValidator;
+        public HabitacionController(IHabitacionServices habitacionServices, IValidator<HabitacionDto> habitacionValidator)
         {
             _habitacionServices = habitacionServices;
+            _HabitacionValidator = habitacionValidator;
         }
         [HttpGet]
         [Route("ObtenerHabitacion")]
@@ -26,6 +30,11 @@ namespace HotelAplication.Controllers
         [Route("AgregarHabitacion")]
         public async Task<ActionResult<HabitacionDto>> agregarHabitacion(HabitacionDto habitacionDto)
         {
+            var validationResult = await _HabitacionValidator.ValidateAsync(habitacionDto);
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors);
+            }
             var habitacion = await _habitacionServices.AgregarHabitacion(habitacionDto); 
 
             return Ok(habitacion);

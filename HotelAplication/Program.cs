@@ -1,5 +1,8 @@
+using FluentValidation;
+using HotelAplication.Dtos;
 using HotelAplication.Models;
 using HotelAplication.Services;
+using HotelAplication.Validators;
 using Microsoft.EntityFrameworkCore;
 
 using Microsoft.IdentityModel.Tokens;
@@ -14,11 +17,12 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+//Base de datos
 builder.Services.AddDbContext<HotelContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<JwtService>();
 
+//Token
+builder.Services.AddScoped<JwtService>();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -37,11 +41,16 @@ builder.Services.AddAuthentication("Bearer")
 
 
 builder.Services.AddAuthorization();
-
+//Servicios
 builder.Services.AddScoped<HotelAplication.Services.IAuthService, AuthService>();
 builder.Services.AddScoped<HotelAplication.Services.IHabitacionServices, HabitacionService>();
 builder.Services.AddScoped<HotelAplication.Services.IAdminService, AdminService>();
 builder.Services.AddScoped<IReservaService, ReservaService>();
+//Validadores
+builder.Services.AddScoped<IValidator<RegistroDto>, RegisterValidator>();
+builder.Services.AddScoped<IValidator<LoginDto>, LoginValidator>();
+builder.Services.AddScoped<IValidator<HabitacionDto>, HabitacionValidator>();
+builder.Services.AddScoped<IValidator<CrearReservaDto>, ReservaValidator>();
 
 
 
