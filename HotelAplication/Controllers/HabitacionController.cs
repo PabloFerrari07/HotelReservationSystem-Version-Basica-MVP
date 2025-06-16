@@ -24,6 +24,19 @@ namespace HotelAplication.Controllers
         [HttpGet]
         [Route("ObtenerHabitacion")]
         public async Task<IEnumerable<HabitacionDto>> Obtener() => await _habitacionServices.ObtenerHabitaciones();
+        [Authorize(Roles = "cliente")]
+        [HttpGet]
+        [Route("HabitacionesDisponibles")]
+        public async Task<ActionResult<List<HabitacionDto>>> ObtenerHabitacionesDisponibles(DateTime fechaInicio,DateTime fechaFin)
+        {
+            if(fechaInicio >= fechaFin)
+            {
+                return BadRequest("La fecha de inicio debe ser anterior a la fecha de fin.");
+            }
+
+            var disponibles = await _habitacionServices.ObtenerHabitacionesDisponibles(fechaInicio, fechaFin);
+            return Ok(disponibles);
+        }
 
         [Authorize(Roles = "admin")]
         [HttpPost]

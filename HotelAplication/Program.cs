@@ -51,6 +51,7 @@ builder.Services.AddScoped<IValidator<RegistroDto>, RegisterValidator>();
 builder.Services.AddScoped<IValidator<LoginDto>, LoginValidator>();
 builder.Services.AddScoped<IValidator<HabitacionDto>, HabitacionValidator>();
 builder.Services.AddScoped<IValidator<CrearReservaDto>, ReservaValidator>();
+builder.Services.AddScoped<IValidator<UsuarioDto>, AdminValidator>();
 
 
 

@@ -40,6 +40,20 @@ namespace HotelAplication.Services
                 throw new Exception($"La habitación con ID {dto.IdHabitacion} no existe.");
             }
 
+      
+            bool haySolapamiento = await _context.Reservas
+                .AnyAsync(r =>
+                    r.IdHabitacion == dto.IdHabitacion &&
+                    r.Estado == "activa" &&
+                    dto.FechaEntrada < r.FechaSalida &&
+                    dto.FechaSalida > r.FechaEntrada
+                );
+
+            if (haySolapamiento)
+            {
+                throw new Exception("Ya existe una reserva activa para esta habitación en el rango de fechas seleccionado.");
+            }
+
             var usuario = await _context.Usuarios.FindAsync(idUsuario);
             if (usuario == null)
             {

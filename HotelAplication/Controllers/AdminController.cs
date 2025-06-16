@@ -1,4 +1,5 @@
-﻿using HotelAplication.Dtos;
+﻿using FluentValidation;
+using HotelAplication.Dtos;
 using HotelAplication.Models;
 using HotelAplication.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,10 +15,12 @@ namespace HotelAplication.Controllers
     {
         private readonly HotelContext _context;
         private readonly IAdminService _adminService;
-        public AdmilController(HotelContext context, IAdminService adminService)
+        private readonly IValidator<UsuarioDto> _validator;
+        public AdmilController(HotelContext context, IAdminService adminService, IValidator<UsuarioDto> validator)
         {
             _context = context;
             _adminService = adminService;
+            _validator = validator;
         }
         [Authorize(Roles = "admin")]
         [HttpGet]
@@ -41,6 +44,11 @@ namespace HotelAplication.Controllers
 
         public async Task<ActionResult<UsuarioDto>> Editar(int id, UsuarioDto dto)
         {
+            var validationResult = await _validator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+            {
+                return BadRequest(validationResult.Errors);
+            }
             var usuario = await _adminService.EditarUsuario(id, dto);
             return usuario == null ? NotFound() : usuario;
 

@@ -2,6 +2,7 @@
 using HotelAplication.Dtos;
 using HotelAplication.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HotelAplication.Services
@@ -104,6 +105,27 @@ namespace HotelAplication.Services
             };
 
             return habitacionEncontrada;
+        }
+
+        public async Task<List<HabitacionDto>> ObtenerHabitacionesDisponibles(DateTime fechaInicio, DateTime fechaFin)
+        {
+            var habitacionesOcupadas = await _context.Reservas
+                .Where(r => r.FechaEntrada < fechaFin && r.FechaSalida > fechaInicio)
+                .Select(r => r.IdHabitacion) 
+                .ToListAsync();
+
+            var habitacionesDisponibles = await _context.Habitaciones
+                .Where(h => !habitacionesOcupadas.Contains(h.Id))
+                .ToListAsync();
+
+            return habitacionesDisponibles.Select(h => new HabitacionDto
+            {
+                Id = h.Id,
+                Numero = h.Numero,
+                Tipo = h.Tipo,
+                PrecioPorNoche = h.PrecioPorNoche,
+                Disponible = h.Disponible
+            }).ToList();
         }
     }
 }
