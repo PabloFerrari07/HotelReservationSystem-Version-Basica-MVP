@@ -40,7 +40,7 @@ namespace HotelAplication.Services
                 throw new Exception($"La habitación con ID {dto.IdHabitacion} no existe.");
             }
 
-      
+
             bool haySolapamiento = await _context.Reservas
                 .AnyAsync(r =>
                     r.IdHabitacion == dto.IdHabitacion &&
@@ -95,6 +95,190 @@ namespace HotelAplication.Services
             reserva.Estado = "cancelada";
             await _context.SaveChangesAsync();
         }
+
+
+
+
+        public async Task<HistorialReservasDto> ObtenerHistorialReservas(int idUsuario)
+        {
+            await ActualizacionEstadoReservas();
+            var reservas = await _context.Reservas
+                                    .Include(r => r.Usuario)
+                                    .Include(r => r.Habitacion)
+                                    .Where(r => r.IdUsuario == idUsuario).ToListAsync();
+
+            var activas = reservas.Where(r => r.Estado == "activa").Select(MapearDto).ToList();
+            var cancelada = reservas.Where(r => r.Estado == "cancelada").Select(MapearDto).ToList();
+            var finalizada = reservas.Where(r => r.Estado == "finalizada").Select(MapearDto).ToList();
+
+            return new HistorialReservasDto
+            {
+                Activas = activas,
+                Canceladas = cancelada,
+                Finalizadas = finalizada
+            };
+
+
+        }
+
+        public async Task<HistorialReservasDto> ObtenerHistorialCompleto()
+        {
+            await ActualizacionEstadoReservas();
+
+            var reservas = await _context.Reservas
+                                    .Include(r => r.Usuario)
+                                    .Include(r => r.Habitacion).ToListAsync();
+
+            var activas = reservas.Where(r => r.Estado == "activa").Select(MapearDto).ToList();
+            var cancelada = reservas.Where(r => r.Estado == "cancelada").Select(MapearDto).ToList();
+            var finalizada = reservas.Where(r => r.Estado == "finalizada").Select(MapearDto).ToList();
+
+            return new HistorialReservasDto
+            {
+                Activas = activas,
+                Canceladas = cancelada,
+                Finalizadas = finalizada
+            };
+        }
+
+        public async Task<DashBoardUsuarioDto> ObtenerDashboard(int idUsuario)
+        {
+            await ActualizacionEstadoReservas();
+
+            var usuario = await _context.Usuarios.FindAsync(idUsuario);
+            var reservas = await _context.Reservas
+                                         .Include(r => r.Habitacion)
+                                         .Where(r => r.IdUsuario == idUsuario).ToListAsync();
+
+            var hoy = DateTime.Today;
+
+            return new DashBoardUsuarioDto
+            {
+                Nombre = usuario.Name,
+                Email = usuario.Email,
+                TotalReservas = reservas.Count,
+                Activas = reservas.Count(r => r.Estado == "activa"),
+                Canceladas = reservas.Count(r => r.Estado == "cancelada"),
+                Finalizadas = reservas.Count(r => r.Estado == "finalizada"),
+                ProximasReservas = reservas
+            .Where(r => r.FechaEntrada > hoy && r.Estado == "activa")
+            .Select(MapearDto)
+            .ToList()
+            };
+
+        }
+
+        public async Task<DashboardAdminDto> ObtenerDashboardAdmin()
+        {
+            await ActualizacionEstadoReservas();
+
+            var totalUsuarios = await _context.Usuarios.CountAsync();
+            var totalReservas = await _context.Reservas.CountAsync();
+            var reservasActivas = await _context.Reservas.CountAsync(r => r.Estado == "activa");
+            var reservasCanceladas = await _context.Reservas.CountAsync(r => r.Estado == "cancelada");
+            var reservasFinalizadas = await _context.Reservas.CountAsync(r => r.Estado == "finalizada");
+            var habitacionesDisponible = await _context.Habitaciones.CountAsync(h => h.Disponible);
+            var habitacionesOcupadas = await _context.Habitaciones.CountAsync(h => !h.Disponible);
+
+            return new DashboardAdminDto
+            {
+                TotalUsuarios = totalUsuarios,
+                TotalReservas = totalReservas,
+                ReservasActivas = reservasActivas,
+                ReservasCanceladas = reservasCanceladas,
+                ReservasFinalizadas = reservasFinalizadas,
+                HabitacionesDisponibles = habitacionesDisponible,
+                HabitacionesOcupadas = habitacionesOcupadas
+            };
+        }
+
+        public async Task<List<ReservaDto>> ObtenerReservasConFiltros(FiltroReservaDto filtro)
+        {
+            var query = _context.Reservas
+                .Include(r => r.Usuario)
+                .Include(r => r.Habitacion)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(filtro.Estado))
+            {
+                query = query.Where(r => r.Estado == filtro.Estado);
+            }
+
+            if (filtro.IdUsuario.HasValue)
+            {
+                query = query.Where(r => r.IdUsuario == filtro.IdUsuario.Value);
+            }
+
+            if (filtro.Desde.HasValue && filtro.Hasta.HasValue)
+            {
+                var desdeFecha = filtro.Desde.Value.Date;
+                var hastaFecha = filtro.Hasta.Value.Date;
+
+                query = query.Where(r =>
+                    r.FechaEntrada.Date <= hastaFecha &&
+                    r.FechaSalida.Date >= desdeFecha
+                );
+            }
+
+            var reservas = await query.ToListAsync();
+
+            return reservas.Select(r => new ReservaDto
+            {
+                Id = r.Id,
+                NombreUsuario = r.Usuario.Name,
+                NumeroHabitacion = r.Habitacion.Numero,
+                FechaEntrada = r.FechaEntrada,
+                FechaSalida = r.FechaSalida,
+                Estado = r.Estado
+            }).ToList();
+        }
+
+        public async Task<List<OcupacionPorFechaDto>> ObtenerOcupacionPorFecha(FiltroOcupacionDto filtro)
+        {
+            var resultado = new List<OcupacionPorFechaDto>();
+
+            for(DateTime fecha = filtro.FechaDesde.Date; fecha <= filtro.FechaHasta.Date; fecha = fecha.AddDays(1))
+            {
+                var ocupadasEseDia = await _context.Reservas
+                    .Where(r => r.Estado == "activa" && fecha >= r.FechaEntrada.Date && fecha <= r.FechaSalida.Date).CountAsync();
+
+                resultado.Add(new OcupacionPorFechaDto
+                {
+                    Fecha = fecha,
+                    HabitacionesOcupadas = ocupadasEseDia
+                });
+            }
+
+            return resultado;
+        }
+
+
+        private async Task ActualizacionEstadoReservas()
+        {
+            var reservas = await _context.Reservas
+                                         .Where(r => r.Estado == "activa" && r.FechaSalida < DateTime.Today).ToListAsync();
+
+            foreach (var r in reservas)
+            {
+                r.Estado = "finalizada";
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        private ReservaDto MapearDto(Reserva r)
+        {
+            return new ReservaDto
+            {
+                Id = r.Id,
+                NombreUsuario = r.Usuario?.Name,
+                NumeroHabitacion = r.Habitacion?.Numero ?? 0,
+                FechaEntrada = r.FechaEntrada,
+                FechaSalida = r.FechaSalida,
+                Estado = r.Estado
+            };
+        }
+
+
     }
 
 }

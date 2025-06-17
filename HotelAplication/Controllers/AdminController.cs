@@ -11,12 +11,12 @@ namespace HotelAplication.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AdmilController : ControllerBase
+    public class AdminController : ControllerBase
     {
         private readonly HotelContext _context;
         private readonly IAdminService _adminService;
         private readonly IValidator<UsuarioDto> _validator;
-        public AdmilController(HotelContext context, IAdminService adminService, IValidator<UsuarioDto> validator)
+        public AdminController(HotelContext context, IAdminService adminService, IValidator<UsuarioDto> validator)
         {
             _context = context;
             _adminService = adminService;
