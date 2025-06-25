@@ -61,27 +61,28 @@ namespace HotelAplication.Services
         public async Task<UsuarioDto> EliminarUsuario(int id)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null)
+                return null;
 
-            if (usuario != null)
+            // Verificamos si el usuario tiene reservas
+            bool tieneReservas = await _context.Reservas.AnyAsync(r => r.IdUsuario == id);
+            if (tieneReservas)
+                throw new Exception("No se puede eliminar el usuario porque tiene reservas asociadas.");
+
+            var usuarioDto = new UsuarioDto
             {
-                var usuarioDto = new UsuarioDto
-                {
-                    Id = usuario.Id,
-                    Name = usuario.Name,
-                    Email = usuario.Email,
-                    Rol = usuario.Rol
+                Id = usuario.Id,
+                Name = usuario.Name,
+                Email = usuario.Email,
+                Rol = usuario.Rol
+            };
 
-                };
+            _context.Usuarios.Remove(usuario);
+            await _context.SaveChangesAsync();
 
-                _context.Remove(usuario);
-                await _context.SaveChangesAsync();
-
-                return usuarioDto;
-            }
-
-            return null;
-
+            return usuarioDto;
         }
+
 
 
     }

@@ -9,6 +9,7 @@ namespace HotelAplication.Services
         Task<HabitacionDto> ObtenerHabitacionPorNumero(int numero);
         Task<HabitacionDto> EditarHabitacion(int id, HabitacionDto dto);
         Task<List<HabitacionDto>> ObtenerHabitacionesDisponibles(DateTime fechaInicio, DateTime fechaFin);
+        Task EliminarHabitacion(int id);
 
     }
 }

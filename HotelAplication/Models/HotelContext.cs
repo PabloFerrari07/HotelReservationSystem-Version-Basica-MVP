@@ -16,13 +16,13 @@ namespace HotelAplication.Models
 
             modelBuilder.Entity<Reserva>()
                 .HasOne(r => r.Usuario)
-                .WithMany() // O con .WithMany(u => u.Reservas) si tenés la lista de reservas en Usuario
+                .WithMany(u => u.Reservas) // Asegurate de tener esto en el modelo Usuario
                 .HasForeignKey(r => r.IdUsuario)
-                .OnDelete(DeleteBehavior.Restrict); // O DeleteBehavior.Cascade si querés que se elimine en cascada
+                .OnDelete(DeleteBehavior.SetNull); // Cambiado de Restrict a SetNull
 
             modelBuilder.Entity<Reserva>()
                 .HasOne(r => r.Habitacion)
-                .WithMany() // O con .WithMany(h => h.Reservas) si tenés la lista en Habitacion
+                .WithMany()
                 .HasForeignKey(r => r.IdHabitacion)
                 .OnDelete(DeleteBehavior.Restrict);
         }

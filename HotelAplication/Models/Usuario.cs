@@ -8,6 +8,7 @@
         public string PasswordHash {  get; set; }
 
         public string Rol { get; set; }
-        public ICollection<Reserva> Reservas { get; set; }  
+        public ICollection<Reserva> Reservas { get; set; } = new List<Reserva>();
+
     }
 }

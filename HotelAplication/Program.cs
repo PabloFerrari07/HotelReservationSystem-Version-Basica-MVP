@@ -12,16 +12,27 @@ using static HotelAplication.Services.IAuthService;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-//Base de datos
-builder.Services.AddDbContext<HotelContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Base de datos
+builder.Services.AddDbContext<HotelContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-//Token
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+// JWT
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
@@ -39,25 +50,23 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
-
 builder.Services.AddAuthorization();
-//Servicios
-builder.Services.AddScoped<HotelAplication.Services.IAuthService, AuthService>();
-builder.Services.AddScoped<HotelAplication.Services.IHabitacionServices, HabitacionService>();
-builder.Services.AddScoped<HotelAplication.Services.IAdminService, AdminService>();
+
+// Servicios
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IHabitacionServices, HabitacionService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IReservaService, ReservaService>();
-//Validadores
+
+// Validadores
 builder.Services.AddScoped<IValidator<RegistroDto>, RegisterValidator>();
 builder.Services.AddScoped<IValidator<LoginDto>, LoginValidator>();
 builder.Services.AddScoped<IValidator<HabitacionDto>, HabitacionValidator>();
 builder.Services.AddScoped<IValidator<CrearReservaDto>, ReservaValidator>();
 builder.Services.AddScoped<IValidator<UsuarioDto>, AdminValidator>();
 
-
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -66,10 +75,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// ?? Middleware de CORS (importante que esté antes de Authentication)
+app.UseCors("CorsPolicy");
+
 app.UseAuthentication();
-app.UseAuthorization();
-
-
 app.UseAuthorization();
 
 app.MapControllers();

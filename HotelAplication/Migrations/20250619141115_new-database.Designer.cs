@@ -4,6 +4,7 @@ using HotelAplication.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelAplication.Migrations
 {
     [DbContext(typeof(HotelContext))]
-    partial class HotelContextModelSnapshot : ModelSnapshot
+    [Migration("20250619141115_new-database")]
+    partial class newdatabase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -72,7 +75,10 @@ namespace HotelAplication.Migrations
                     b.Property<int>("IdHabitacion")
                         .HasColumnType("int");
 
-                    b.Property<int?>("IdUsuario")
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UsuarioId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -82,6 +88,8 @@ namespace HotelAplication.Migrations
                     b.HasIndex("IdHabitacion");
 
                     b.HasIndex("IdUsuario");
+
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Reservas");
                 });
@@ -128,9 +136,14 @@ namespace HotelAplication.Migrations
                         .IsRequired();
 
                     b.HasOne("HotelAplication.Models.Usuario", "Usuario")
-                        .WithMany("Reservas")
+                        .WithMany()
                         .HasForeignKey("IdUsuario")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HotelAplication.Models.Usuario", null)
+                        .WithMany("Reservas")
+                        .HasForeignKey("UsuarioId");
 
                     b.Navigation("Habitacion");
 

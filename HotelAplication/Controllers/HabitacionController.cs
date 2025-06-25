@@ -71,6 +71,22 @@ namespace HotelAplication.Controllers
             return habitacionModificada ==null ? NotFound() : Ok(habitacionModificada);
         }
 
+        [Authorize(Roles = "admin")]
+        [HttpDelete]
+        [Route("EliminarHabitacion/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _habitacionServices.EliminarHabitacion(id);
+                return Ok(new { mensaje = "Habitación eliminada correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
 
 
     }

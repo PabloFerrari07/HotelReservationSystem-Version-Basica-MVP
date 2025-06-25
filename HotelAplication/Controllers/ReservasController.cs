@@ -5,6 +5,7 @@ using HotelAplication.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HotelAplication.Controllers
 {
@@ -95,7 +96,7 @@ namespace HotelAplication.Controllers
 
 
 
-        [Authorize(Roles = "cliente")]
+        [Authorize(Roles = "cliente,admin")]
         [HttpGet("mis-reservas")]
         public async Task<ActionResult<List<ReservaDto>>> ObtenerReservas()
         {
@@ -103,15 +104,60 @@ namespace HotelAplication.Controllers
             var reservas = await _reservaService.ObtenerReservasPorUsuario(idUsuario);
             return Ok(reservas);
         }
-
+        [Authorize(Roles = "cliente,admin")]
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ReservaDto>> ObtenerReservaPorId(int id)
+        {
+            try
+            {
+                var reserva = await _reservaService.ObtenerReservaPorId(id);
+                return Ok(reserva);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+        }
         [Authorize(Roles = "cliente")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> CancelarReserva(int id)
         {
-            var idUsuario = int.Parse(User.Claims.First(c => c.Type == "id").Value);
-            await _reservaService.CancelarReserva(id, idUsuario);
-            return NoContent();
+            try
+            {
+                int userId = ObtenerIdDesdeToken();
+                await _reservaService.CancelarReservaUsuario(id, userId);
+                return Ok(new { mensaje = "Reserva cancelada correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
+
+        [Authorize(Roles = "admin")]
+        [HttpDelete("admin/eliminarReserva/{id}")]
+        public async Task<IActionResult> CancelarReservaAdmin(int id)
+        {
+            try
+            {
+                await _reservaService.CancelarReservaAdmin(id);
+                return Ok(new { mensaje = "Reserva eliminada por el administrador." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        private int ObtenerIdDesdeToken()
+        {
+            var claim = User.Claims.FirstOrDefault(c => c.Type == "id");
+            if (claim == null)
+                throw new Exception("No se pudo obtener el ID del token");
+
+            return int.Parse(claim.Value);
+        }
+
+
     }
 
 }

@@ -107,6 +107,23 @@ namespace HotelAplication.Services
             return habitacionEncontrada;
         }
 
+        public async Task EliminarHabitacion(int id)
+        {
+            var habitacion = await _context.Habitaciones.FindAsync(id);
+
+            if (habitacion == null)
+                throw new Exception("Habitación no encontrada");
+
+            var tieneReservas = await _context.Reservas.AnyAsync(r => r.IdHabitacion == id);
+
+            if (tieneReservas)
+                throw new Exception("No se puede eliminar la habitación porque tiene reservas asociadas.");
+
+            _context.Habitaciones.Remove(habitacion);
+            await _context.SaveChangesAsync();
+        }
+
+
         public async Task<List<HabitacionDto>> ObtenerHabitacionesDisponibles(DateTime fechaInicio, DateTime fechaFin)
         {
             var habitacionesOcupadas = await _context.Reservas

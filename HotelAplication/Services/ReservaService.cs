@@ -1,5 +1,6 @@
 ﻿using HotelAplication.Dtos;
 using HotelAplication.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace HotelAplication.Services
@@ -32,6 +33,29 @@ namespace HotelAplication.Services
             }).ToList();
         }
 
+        public async Task<ReservaDto> ObtenerReservaPorId(int idReserva)
+        {
+            var reserva = await _context.Reservas
+                .Include(r => r.Habitacion)
+                .Include(r => r.Usuario)
+                .FirstOrDefaultAsync(r => r.Id == idReserva);
+
+            if(reserva == null)
+            {
+                throw new Exception($"No se encontró una reserva con el ID {idReserva}.");
+            }
+            return new ReservaDto
+            {
+                Id = reserva.Id,
+                NombreUsuario = reserva.Usuario.Name,
+                NumeroHabitacion = reserva.Habitacion.Numero,
+                FechaEntrada = reserva.FechaEntrada,
+                FechaSalida = reserva.FechaSalida,
+                Estado = reserva.Estado
+
+            };
+        }
+
         public async Task<ReservaDto> CrearReserva(int idUsuario, CrearReservaDto dto)
         {
             var habitacion = await _context.Habitaciones.FindAsync(dto.IdHabitacion);
@@ -39,6 +63,21 @@ namespace HotelAplication.Services
             {
                 throw new Exception($"La habitación con ID {dto.IdHabitacion} no existe.");
             }
+
+            var hoy = DateTime.Today;
+            var maxFecha = hoy.AddYears(1);
+
+            if (dto.FechaEntrada < hoy)
+                throw new Exception("La fecha de entrada no puede ser anterior a hoy.");
+
+            if (dto.FechaEntrada > maxFecha)
+                throw new Exception("No se pueden hacer reservas con más de un año de anticipación.");
+
+            if (dto.FechaSalida <= dto.FechaEntrada)
+                throw new Exception("La fecha de salida debe ser posterior a la fecha de entrada.");
+
+            if (dto.FechaSalida > maxFecha)
+                throw new Exception("La fecha de salida no puede superar un año desde hoy.");
 
 
             bool haySolapamiento = await _context.Reservas
@@ -83,23 +122,34 @@ namespace HotelAplication.Services
             };
         }
 
-
-        public async Task CancelarReserva(int idReserva, int idUsuario)
+        public async Task CancelarReservaUsuario(int idReserva, int idUsuario)
         {
             var reserva = await _context.Reservas
-                .FirstOrDefaultAsync(r => r.Id == idReserva && r.IdUsuario == idUsuario);
+     .FirstOrDefaultAsync(r => r.Id == idReserva && r.IdUsuario == idUsuario);
 
-            if (reserva == null)
-                throw new Exception("Reserva no encontrada o acceso denegado.");
+            if (reserva == null)          
+                throw new Exception("Reserva no encontrada o Acceso denegado");
+            
 
             reserva.Estado = "cancelada";
+
             await _context.SaveChangesAsync();
         }
 
+        public async Task CancelarReservaAdmin(int idReserva)
+        {
+
+            var reserva = await _context.Reservas.FindAsync(idReserva);
+            if (reserva == null)
+                throw new Exception("Reserva no encontrada o Acceso denegado");
+
+            reserva.Estado = "cancelada";
+            await _context.SaveChangesAsync();
+
+        }
 
 
-
-        public async Task<HistorialReservasDto> ObtenerHistorialReservas(int idUsuario)
+            public async Task<HistorialReservasDto> ObtenerHistorialReservas(int idUsuario)
         {
             await ActualizacionEstadoReservas();
             var reservas = await _context.Reservas
@@ -146,11 +196,33 @@ namespace HotelAplication.Services
             await ActualizacionEstadoReservas();
 
             var usuario = await _context.Usuarios.FindAsync(idUsuario);
+            if (usuario == null)
+                throw new Exception("Usuario no encontrado");
+
             var reservas = await _context.Reservas
                                          .Include(r => r.Habitacion)
-                                         .Where(r => r.IdUsuario == idUsuario).ToListAsync();
+                                         .Where(r => r.IdUsuario == idUsuario)
+                                         .ToListAsync();
 
             var hoy = DateTime.Today;
+
+            var proximasReservas = reservas
+                .Where(r => r.FechaEntrada > hoy && r.Estado == "activa")
+                .Where(r => r.Habitacion != null)
+                .Select(r =>
+                {
+                    try
+                    {
+                        return MapearDto(r);
+                    }
+                    catch
+                    {
+                   
+                        return null;
+                    }
+                })
+                .Where(r => r != null)
+                .ToList();
 
             return new DashBoardUsuarioDto
             {
@@ -160,13 +232,11 @@ namespace HotelAplication.Services
                 Activas = reservas.Count(r => r.Estado == "activa"),
                 Canceladas = reservas.Count(r => r.Estado == "cancelada"),
                 Finalizadas = reservas.Count(r => r.Estado == "finalizada"),
-                ProximasReservas = reservas
-            .Where(r => r.FechaEntrada > hoy && r.Estado == "activa")
-            .Select(MapearDto)
-            .ToList()
+                ProximasReservas = proximasReservas
             };
-
         }
+
+
 
         public async Task<DashboardAdminDto> ObtenerDashboardAdmin()
         {
