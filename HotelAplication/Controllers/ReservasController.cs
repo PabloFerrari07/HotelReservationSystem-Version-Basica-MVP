@@ -118,6 +118,22 @@ namespace HotelAplication.Controllers
                 return NotFound(new { mensaje = ex.Message });
             }
         }
+
+        [HttpPost("filtro")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<List<ReservaDto>>> ObtenerReservasConFiltros([FromBody] FiltroReservaDto filtro)
+        {
+            try
+            {
+                var reservas = await _reservaService.ObtenerReservasConFiltros(filtro);
+                return Ok(reservas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al filtrar reservas: {ex.Message}");
+            }
+        }
+
         [Authorize(Roles = "cliente")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> CancelarReserva(int id)
